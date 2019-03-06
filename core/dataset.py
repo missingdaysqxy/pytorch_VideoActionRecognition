@@ -9,6 +9,7 @@ import os
 import csv
 import cv2
 import numpy as np
+import torch as t
 from torch.utils.data import Dataset, DataLoader
 from core import Config
 
@@ -25,18 +26,9 @@ class ActionDataset(Dataset):
 
     def __getitem__(self, idx):
         label, path = self.data[idx]
-        print(label, path)
-        cap = cv2.VideoCapture(path)
-        h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        fc = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        data = np.zeros((h, w, 3 * fc))
-        for i in range(fc):
-            ret, frame = cap.read()
-            cv2.imshow(label, frame)
-            cv2.waitKey(5)
-            data[i * 3:(i + 1) * 3] = frame
-        return label, data
+        data = np.load(path)
+        tensor = t.from_numpy(data)
+        return label, tensor
 
     def __len__(self):
         return len(self.data)
@@ -60,6 +52,13 @@ def ActionDataloader(data_type, config: Config):
 
 
 if __name__ == "__main__":
+    from random import randint
+
     config = Config("train")
     ds = ActionDataset(config.train_data_path, config.classes)
-    print(ds[0])
+    label, data = ds[randint(0, len(ds))]
+    for i in range(data.shape[2] // 3):
+        frame =data[..., i * 3:(i + 1) * 3].numpy()
+        cv2.imshow(str(label), frame)
+        cv2.waitKey(66)
+    print(label,data.shape)

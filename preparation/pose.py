@@ -23,12 +23,12 @@ def decode_pose(joint_list, person_to_joint_assoc, img_shape, zoom_factor):
     # type:(tuple,float,np.ndarray,np.ndarray)->np.ndarray
     limb_thickness = max(int(2e-3 * zoom_factor * sum(img_shape[0:2])), 1)
     point_radius = limb_thickness * 2
-    canvas = np.zeros((int(zoom_factor * img_shape[0]), int(zoom_factor * img_shape[1]), 3), dtype=np.uint8)
+    canvas = np.zeros((int(zoom_factor * img_shape[0]), int(zoom_factor * img_shape[1]), 3), dtype=np.float)
     for person_id, person_joint_info in enumerate(person_to_joint_assoc):
         sub_canvas = np.zeros_like(canvas)
-        color_p = 50 * (person_id + 1)
+        color_p = person_id + 1
         for limb_idx in range(NUM_LIMBS):
-            color_j = 12 * (limb_idx + 1)
+            color_j = limb_idx + 1
             joint_indices = person_joint_info[joint_to_limb_heatmap_relationship[limb_idx]].astype(int)
             if -1 in joint_indices:
                 # Only draw actual limbs (connected joints), skip if not connected

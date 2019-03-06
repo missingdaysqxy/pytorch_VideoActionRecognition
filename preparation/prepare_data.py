@@ -10,14 +10,14 @@ import re
 import cv2
 import csv
 import h5py
+import numpy as np
 from warnings import warn
 from multiprocessing import Pool
 from functools import partial
 from pose import decode_pose, align_skeletons
 
-_PROC_EXT_ = ".proch5.mp4"
+_PROC_EXT_ = ".proc.npz"
 _REGEX_ = re.compile("^(?P<seq>\d+)_(?P<label>\w+)_(?P<num>\d+){}$".format(_PROC_EXT_.replace(".", r"\.")))
-assert os.path.splitext(_PROC_EXT_)[1] in [".mp4"], "must save as .mp4 video file!"
 
 
 def _get_label(cls, file_name):
@@ -32,24 +32,29 @@ def _get_label(cls, file_name):
             return "unknown_positive"
 
 
-def save_skeletons2video(person_skeletons, save_path, show_window=False):
-    assert len(person_skeletons) > 0
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(save_path, fourcc, 20, person_skeletons[0].shape[1::-1])
-    for frm in person_skeletons:
-        out.write(frm)
-        if show_window:
-            cv2.imshow(os.path.basename(proc_path), frm)
+def save_skeletons2npz(person_skeletons: list, save_path: str, show_window=False):
+    data = np.concatenate(person_skeletons, axis=-1)
+    np.savez_compressed(save_path, data)
+    if show_window:
+        for frame in person_skeletons:
+            cv2.imshow(os.path.basename(save_path), normalize_frame(frame, 255).astype(np.uint8))
             if cv2.waitKey(1) == ord('q'):
                 cv2.destroyAllWindows()
                 break
-    cv2.destroyAllWindows()
-    out.release()
+        cv2.destroyAllWindows()
+
+
+def normalize_frame(frame: np.ndarray, factor=1) -> np.ndarray:
+    for i in range(frame.shape[-1]):
+        min, max = frame[..., i].min(), frame[..., i].max()
+        frame[..., i] = factor * (frame[..., i] - min) / (max - min)
+    return frame
 
 
 def proc_h5(h5_path, zoom_factor=1.0, show_window=True, rebuild=False):
     save_path = os.path.splitext(os.path.splitext(h5_path)[0])[0] + _PROC_EXT_
     if os.path.isfile(save_path) and not rebuild:
+        print("[!]{} existed! Ignore {}".format(save_path, h5_path))
         return save_path
     with h5py.File(h5_path, "r") as hf:
         h, w = hf["height"].value, hf["width"].value
@@ -64,16 +69,15 @@ def proc_h5(h5_path, zoom_factor=1.0, show_window=True, rebuild=False):
             canvas = decode_pose(joint_list, person_to_joint_assoc, (h, w), zoom_factor=zoom_factor)
             person_skeletons.append(canvas)
     person_skeletons = align_skeletons(person_skeletons)
-    save_skeletons2video(person_skeletons, save_path, show_window=show_window)
+    save_skeletons2npz(person_skeletons, save_path, show_window=show_window)
+    print("[*]process {} into {}".format(h5_path, save_path))
     return save_path
 
 
 def _walk_file(zoom_factor, show_window, rebuild, file_path):
     name, ext = os.path.splitext(file_path)
     if ext == ".h5":
-        save_path = proc_h5(file_path, zoom_factor, show_window, rebuild)
-        print("process {} into {}".format(file_path, save_path))
-        return save_path
+        return proc_h5(file_path, zoom_factor, show_window, rebuild)
     else:
         return None
 
