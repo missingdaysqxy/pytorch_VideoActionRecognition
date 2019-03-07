@@ -7,11 +7,12 @@
 
 import os
 import time
+import torch as t
 from torch import save, load, set_grad_enabled
 from warnings import warn
 from torch.nn import Module, DataParallel
 from torch.optim import Optimizer
-from config import Config
+from .config import Config
 
 
 class _BaseModule(Module):
@@ -34,7 +35,7 @@ def get_model(config: Config, **kwargs) -> _BaseModule:
     :return: an instance of the Module specified by config.module
     """
     assert isinstance(config, Config)
-    from core import models
+    from . import models
     try:
         with set_grad_enabled(config.enable_grad):
             model = getattr(models, config.module)(config, **kwargs)
@@ -115,7 +116,3 @@ def resume_checkpoint(config: Config, model: Module, optimizer: Optimizer = None
             warn("Can't get last_epoch value, {} will be returned".format(last_epoch))
             os.rename(config.train_record_file, config.train_record_file + '.badfile')
     return last_epoch
-
-
-if __name__ == "__main__":
-    pass

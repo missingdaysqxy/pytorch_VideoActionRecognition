@@ -56,3 +56,4 @@ def decode_pose(joint_list, person_to_joint_assoc, img_shape, zoom_factor):
 def align_skeletons(skeletons_list):
     # ToDo: make this work..
     return skeletons_list
+

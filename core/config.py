@@ -13,9 +13,9 @@ from time import strftime as timestr
 
 class Config(object):
     # data config
-    train_data_path = r'D:\datasets\actions_partial\datalist.csv'
-    val_data_path = r'D:\datasets\actions_partial\datalist.csv'
-    classes_path = r"D:\datasets\actions_partial\clslist.txt"
+    train_data_path = r'/home/liuqixuan/datasets/actions/datalist.csv'
+    val_data_path = r'/home/liuqixuan/datasets/actions/datalist.csv'
+    classes_path = r"/home/liuqixuan/datasets/actions/clslist.txt"
     reload_data = False  # update and reload datasets every time
     shuffle_train = True
     shuffle_val = True
@@ -24,11 +24,11 @@ class Config(object):
 
     # efficiency config
     use_gpu = True  # if there's no cuda-available GPUs, this will turn to False automatically
-    num_data_workers = 16  # how many subprocesses to use for data loading
-    pin_memory = True  # only set to True when your machine's memory is large enough
-    time_out = 0  # max seconds for loading a batch of data, 0 means non-limit
+    num_data_workers = 8  # how many subprocesses to use for data loading
+    pin_memory = False  # only set to True when your machine's memory is large enough
+    time_out = 60  # max seconds for loading a batch of data, 0 means non-limit
     max_epoch = 100  # how many epochs for training
-    batch_size = 32  # how many scene images for a batch
+    batch_size = 20  # how many scene images for a batch
 
     # weight S/L config
     weight_load_path = r'checkpoints/actionnet.pth'  # where to load pre-trained weight for further training
@@ -39,7 +39,7 @@ class Config(object):
     # module config
     module = "ActionNet"
     image_resize = [360, 640]  # Height * Width
-    frame_count = 150
+    sequence_length = 100
     hidden_size = 64
     lstm_layers = 2
     dropout = 0.25 # probability of Dropout layers, 0 for non-dropout
@@ -77,7 +77,6 @@ class Config(object):
             from torch.cuda import is_available as cuda_available, device_count
             if cuda_available():
                 self.num_gpu = device_count()
-                print(self.num_gpu)
                 self.gpu_list = list(range(self.num_gpu))
                 assert self.batch_size % self.num_gpu == 0, \
                     "Can't split a batch of data with batch_size {} averagely into {} gpu(s)" \

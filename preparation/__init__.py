@@ -5,9 +5,7 @@
 # @File    : __init__.py
 # @Software: PyCharm
 
-from .pose import decode_pose,align_skeletons
+from .pose import decode_pose, align_skeletons
 from .prepare_data import prepare
-try:
-    import ipdb
-except:
-    import pdb as ipdb
+
+# __all__ = ["decode_pose", "align_skeletons", "prepare"]

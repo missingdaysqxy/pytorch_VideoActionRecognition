@@ -12,11 +12,11 @@ import numpy as np
 import torch as t
 from torch.utils.data import Dataset, DataLoader
 from torch.nn import functional as F
-from config import Config
+from .config import Config
 
 
 class ActionDataset(Dataset):
-    def __init__(self, path: str, classes: list, resize: tuple):
+    def __init__(self, path: str, classes: list, resize: tuple, seq_len: int):
         """
         :param path: datalist_file file inited by prepare_data.prepare
         :param classes: classes in config.Config
@@ -27,6 +27,7 @@ class ActionDataset(Dataset):
         for i, cls in enumerate(classes):
             self.class_dict[cls] = i
         self.resize = resize
+        self.seq_len = seq_len
         self.data = []
         with open(path, "r") as f:
             reader = csv.reader(f)
@@ -37,11 +38,13 @@ class ActionDataset(Dataset):
         """
         get data item
         :param idx: int index
-        :return: (label, data) label is an int, data is a [sequence, channel, height, width] tensor
+        :return: (label, data) label is an int, data is a [seq_len, channel, height, width] tensor
         """
         label, path = self.data[idx]
         data = np.load(path)
         data = data['arr_0']
+        seq,h,w,c = data.shape
+        data = np.resize(data, (self.seq_len,h,w,c))
         data = t.from_numpy(data).to(t.float).permute(0, 3, 1, 2)
         data = F.interpolate(data, size=self.resize, mode='nearest')
         return label, data
@@ -50,7 +53,7 @@ class ActionDataset(Dataset):
         return len(self.data)
 
 
-def ActionDataloader(data_type, config):
+def ActionDataLoader(data_type, config):
     # type:(str,Config)->DataLoader
     assert data_type in ["train", "training", "val", "validation", "inference"]
     if data_type in ["train", "training"]:
@@ -61,20 +64,8 @@ def ActionDataloader(data_type, config):
         data_path = config.val_data_path
         shuffle = config.shuffle_val
         drop_last = config.drop_last_val
-    dataset = ActionDataset(data_path, config.classes)
+    dataset = ActionDataset(data_path, config.classes, config.image_resize, config.sequence_length)
     assert len(dataset) > config.batch_size
-    return DataLoader(dataset, config.batch_size, shuffle, num_workers=config.num_data_workers,
+    loader = DataLoader(dataset, config.batch_size, shuffle, num_workers=config.num_data_workers,
                       pin_memory=config.pin_memory, drop_last=drop_last, timeout=config.time_out)
-
-
-if __name__ == "__main__":
-    from random import randint
-
-    config = Config("train")
-    ds = ActionDataset(config.train_data_path, config.classes, (720, 1280))
-    label, data = ds[randint(0, len(ds))]
-    for i in range(data.shape[0] // 3):
-        frame = data[i, ...].permute(1, 2, 0).numpy()
-        cv2.imshow(str(label), frame)
-        cv2.waitKey(66)
-    print(config.classes[label], data.shape)
+    return loader
