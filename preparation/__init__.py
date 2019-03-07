@@ -5,8 +5,8 @@
 # @File    : __init__.py
 # @Software: PyCharm
 
-from preparation.pose import decode_pose,align_skeletons
-from preparation.prepare_data import prepare
+from .pose import decode_pose,align_skeletons
+from .prepare_data import prepare
 try:
     import ipdb
 except:

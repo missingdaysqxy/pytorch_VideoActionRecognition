@@ -17,15 +17,15 @@ from core import *
 
 
 def get_data(data_type, config: Config):
-    data = CloudDataLoader(data_type, config)
+    data = ActionDataset(data_type, config)
     return data
 
 
 def get_loss_functions(config: Config) -> Module:
-    if config.loss_type == "ordinal":
-        return t.nn.CrossEntropyLoss(), t.nn.MSELoss(), OrdinalLoss()
+    if config.loss_type == "mse":
+        return t.nn.MSELoss()
     elif config.loss_type in ["cross_entropy", "crossentropy", "cross", "ce"]:
-        return t.nn.CrossEntropyLoss(), t.nn.MSELoss(), t.nn.CrossEntropyLoss()
+        return t.nn.CrossEntropyLoss()
     else:
         raise RuntimeError("Invalid config.loss_type:" + config.loss_type)
 
@@ -41,19 +41,9 @@ def get_optimizer(model: Module, config: Config) -> t.optim.Optimizer:
 
 def train(model, train_data, val_data, config, vis):
     # type: (Module,CloudDataLoader,CloudDataLoader,Config,Visualizer)->None
-    def loss_sum(c1, c2, c3):
-        c1 *= LOSS_WEIGHT[0]
-        c2 *= LOSS_WEIGHT[1]
-        c3 *= LOSS_WEIGHT[2]
-        sum = c1 + c2 + c3
-        loss1 = c1 * (c2 + c3) / sum
-        loss2 = c2 * (c1 + c3) / sum
-        loss3 = c3 * (c1 + c2) / sum
-        loss = loss1 + loss2 + loss3
-        return loss, loss1, loss2, loss3
 
     # init loss and optim
-    criterion1, criterion2, criterion3 = get_loss_functions(config)
+    criterion = get_loss_functions(config)
     optimizer = get_optimizer(model, config)
     scheduler = t.optim.lr_scheduler.StepLR(optimizer, 1, config.lr_decay)
     # try to resume
@@ -66,9 +56,6 @@ def train(model, train_data, val_data, config, vis):
         vis.clear()
     # init meter statistics
     loss_meter = meter.AverageValueMeter()
-    loss1_meter = meter.AverageValueMeter()
-    loss2_meter = meter.AverageValueMeter()
-    loss3_meter = meter.AverageValueMeter()
     confusion_matrix = meter.ConfusionMeter(config.num_classes)
     last_accuracy = 0
     for epoch in range(last_epoch + 1, config.max_epoch):
@@ -81,26 +68,18 @@ def train(model, train_data, val_data, config, vis):
         model.train()
         for i, input in enumerate(train_data):
             # input data
-            batch_sub_img, batch_sub_label, batch_parent_img, batch_pare_label = input
+            b_labels, b_actions = input
             if config.use_gpu:
                 with t.cuda.device(0):
-                    batch_sub_img = batch_sub_img.cuda()
-                    batch_sub_label = batch_sub_label.cuda()
-                    batch_parent_img = batch_parent_img.cuda()
-                    batch_pare_label = batch_pare_label.cuda()
-                    criterion1 = criterion1.cuda()
-                    criterion2 = criterion2.cuda()
-                    criterion3 = criterion3.cuda()
-            batch_sub_img.requires_grad_(True)
-            batch_parent_img.requires_grad_(True)
-            batch_sub_label.requires_grad_(False)
-            batch_pare_label.requires_grad_(False)
-            batch_sub_label = batch_sub_label.view(-1)
+                    b_labels = b_labels.cuda()
+                    b_actions = b_actions.cuda()
+                    criterion = criterion.cuda()
+            b_actions.requires_grad_(True)
+            b_labels.requires_grad_(False)
+            # b_labels = b_labels.view(-1)
             # forward
-            batch_interim_prob, batch_cover_rate, batch_final_prob = model(batch_sub_img, batch_parent_img)
-            c1 = criterion1(batch_interim_prob, batch_sub_label)
-            c2 = criterion2(batch_cover_rate, batch_pare_label)
-            c3 = criterion3(batch_final_prob, batch_sub_label)
+            batch_interim_prob, batch_cover_rate, batch_final_prob = model(batch_sub_img, b_actions)
+            c1 = criterion(batch_interim_prob, b_labels)
             loss, loss1, loss2, loss3 = loss_sum(c1, c2, c3)
             # backward
             optimizer.zero_grad()
@@ -112,7 +91,7 @@ def train(model, train_data, val_data, config, vis):
             loss2_meter.add(loss2.data.cpu())
             loss3_meter.add(loss3.data.cpu())
             batch_final_pred = t.argmax(batch_final_prob, dim=-1)
-            confusion_matrix.add(batch_final_pred, batch_sub_label)
+            confusion_matrix.add(batch_final_pred, b_labels)
             # print process
             if i % config.ckpt_freq == 0 or i >= len(train_data) - 1:
                 step = epoch * len(train_data) + i

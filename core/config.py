@@ -13,9 +13,9 @@ from time import strftime as timestr
 
 class Config(object):
     # data config
-    train_data_path = r'D:\datasets\actions\datalist.csv'
-    val_data_path = r'D:\datasets\actions\datalist.csv'
-    classes_path = r"D:\datasets\actions\clslist.txt"
+    train_data_path = r'D:\datasets\actions_partial\datalist.csv'
+    val_data_path = r'D:\datasets\actions_partial\datalist.csv'
+    classes_path = r"D:\datasets\actions_partial\clslist.txt"
     reload_data = False  # update and reload datasets every time
     shuffle_train = True
     shuffle_val = True
@@ -39,7 +39,10 @@ class Config(object):
     # module config
     module = "ActionNet"
     image_resize = [360, 640]  # Height * Width
-    use_batch_norm = True
+    frame_count = 150
+    hidden_size = 64
+    lstm_layers = 2
+    dropout = 0.25 # probability of Dropout layers, 0 for non-dropout
     loss_type = "ce"
     optimizer = "adam"
     lr = 0.01  # learning rate
@@ -63,11 +66,11 @@ class Config(object):
             else:
                 warn("{} has no attribute {}:{}".format(type(self), key, value))
         # data config
-        assert os.path.isfile(self.classes_path), "%s is not valid file" % self.classes_path
-        self.classes = {}
+        assert os.path.isfile(self.classes_path), "%s is not a valid file" % self.classes_path
+        self.classes = []
         with open(self.classes_path, "r") as f:
-            for i, cls in enumerate(f.readlines()):
-                self.classes[cls.strip()] = i
+            for cls in f.readlines():
+                self.classes.append(cls.strip())
         self.num_classes = len(self.classes)
         # efficiency config
         if self.use_gpu:

@@ -33,7 +33,7 @@ def _get_label(cls, file_name):
 
 
 def save_skeletons2npz(person_skeletons: list, save_path: str, show_window=False):
-    data = np.concatenate(person_skeletons, axis=-1)
+    data = np.concatenate(person_skeletons, axis=0)
     np.savez_compressed(save_path, data)
     if show_window:
         for frame in person_skeletons:
@@ -67,7 +67,7 @@ def proc_h5(h5_path, zoom_factor=1.0, show_window=True, rebuild=False):
             joint_list = hf["frame%d" % frm]["joint_list"].value
             person_to_joint_assoc = hf["frame%d" % frm]["person_to_joint_assoc"].value
             canvas = decode_pose(joint_list, person_to_joint_assoc, (h, w), zoom_factor=zoom_factor)
-            person_skeletons.append(canvas)
+            person_skeletons.append(canvas[np.newaxis, ...])
     person_skeletons = align_skeletons(person_skeletons)
     save_skeletons2npz(person_skeletons, save_path, show_window=show_window)
     print("[*]process {} into {}".format(h5_path, save_path))

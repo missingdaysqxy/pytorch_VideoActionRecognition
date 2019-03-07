@@ -6,10 +6,10 @@
 # @Software: PyCharm
 
 
-from core._base import _BaseModule, get_model, make_checkpoint, resume_checkpoint
-from core.utils import Visualizer
-from core.config import Config
-from core.dataset import ActionDataset
+from ._base import _BaseModule, get_model, make_checkpoint, resume_checkpoint
+from .utils import Visualizer
+from .config import Config
+from .dataset import ActionDataset
 
 try:
     import ipdb
