@@ -21,6 +21,7 @@ _REGEX_ = re.compile("^(?P<seq>\d+)_(?P<label>\w+)_(?P<num>\d+){}$".format(_PROC
 
 
 def _get_label(cls, file_name):
+    # Todo: overwrite this function for different datasets
     if cls == "neg":
         return "negative"
     else:
@@ -129,10 +130,11 @@ if __name__ == "__main__":
     parser.add_argument("root", type=str, help="data root dir")
     parser.add_argument("data_list", type=str, help="csv file save path of dataset")
     parser.add_argument("cls_list", type=str, help="text file save path of classes list")
-    parser.add_argument("-z", "--zoom", type=float, default=0.5, help="zoom factor for .proch5.mp4 skeleton videos")
+    parser.add_argument("-z", "--zoom", type=float, default=0.5, help="zoom factor for {} skeletons".format(_PROC_EXT_))
     parser.add_argument("-v", "--verb", action="store_true", help="show visualized skeletons video window")
     parser.add_argument("-s", "--singleproc", action="store_true", help="use single-process, do not use multi-process")
-    parser.add_argument("-b", "--rebuild", action="store_true", help="rebuild existed proch5.mp4 skeleton videos")
+    parser.add_argument("-b", "--rebuild", action="store_true",
+                        help="rebuild existed {} skeleton videos".format(_PROC_EXT_))
     args = parser.parse_args()
     prepare(args.root, args.data_list, args.cls_list, multiproc=not args.singleproc, zoom_factor=args.zoom,
             show_window=args.verb, rebuild=args.rebuild)

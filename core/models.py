@@ -33,5 +33,8 @@ class ActionNet(Module):
         # input = self.cnn(input)
         input = input.view(bc, seq, -1)
         output, hn = self.rnn(input, h_state)
-        output = self.classifier(output[:,-1,:])
+        output = self.classifier(output[:, -1, :])
         return output
+
+
+
