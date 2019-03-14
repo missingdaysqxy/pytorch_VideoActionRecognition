@@ -21,16 +21,17 @@ _REGEX_ = re.compile("^(?P<seq>\d+)_(?P<label>\w+)_(?P<num>\d+){}$".format(_PROC
 
 
 def _get_label(cls, file_name):
-    # Todo: overwrite this function for different datasets
+    """overwrite this function for different datasets"""
     if cls == "neg":
-        return "negative"
+        return "0"
     else:
-        reg = _REGEX_
-        rmtch = reg.match(file_name)
-        if rmtch:
-            return rmtch.groupdict()["label"]
-        else:
-            return "unknown_positive"
+        return "1"
+        # reg = _REGEX_
+        # rmtch = reg.match(file_name)
+        # if rmtch:
+        #     return rmtch.groupdict()["label"]
+        # else:
+        #     return "unknown_positive"
 
 
 def save_skeletons2npz(person_skeletons: list, save_path: str, show_window=False):

@@ -5,16 +5,15 @@
 # @File    : vgg.py.py
 # @Software: PyCharm
 
+import torch as t
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 import math
-
 
 __all__ = [
     'VGG', 'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
     'vgg19_bn', 'vgg19',
 ]
-
 
 model_urls = {
     'vgg11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
@@ -30,11 +29,12 @@ model_urls = {
 
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1000, init_weights=True):
+    def __init__(self, features, in_size=[224, 224], num_classes=1000, init_weights=True):
         super(VGG, self).__init__()
         self.features = features
+        self.features_num = 512 * math.ceil(in_size[0] / 32) * math.ceil(in_size[1] / 32)
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
+            nn.Linear(self.features_num, 4096),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -66,9 +66,8 @@ class VGG(nn.Module):
                 m.bias.data.zero_()
 
 
-def make_layers(cfg, batch_norm=False):
+def make_layers(cfg, in_channels=3, batch_norm=False):
     layers = []
-    in_channels = 3
     for v in cfg:
         if v == 'M':
             layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
@@ -90,7 +89,7 @@ cfg = {
 }
 
 
-def vgg11(pretrained=False, **kwargs):
+def vgg11(pretrained=False, in_channels=3, **kwargs):
     """VGG 11-layer model (configuration "A")
 
     Args:
@@ -98,13 +97,13 @@ def vgg11(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['A']), **kwargs)
+    model = VGG(make_layers(cfg['A'], in_channels), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg11']))
     return model
 
 
-def vgg11_bn(pretrained=False, **kwargs):
+def vgg11_bn(pretrained=False, in_channels=3, **kwargs):
     """VGG 11-layer model (configuration "A") with batch normalization
 
     Args:
@@ -112,13 +111,13 @@ def vgg11_bn(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['A'], batch_norm=True), **kwargs)
+    model = VGG(make_layers(cfg['A'], in_channels, batch_norm=True), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg11_bn']))
     return model
 
 
-def vgg13(pretrained=False, **kwargs):
+def vgg13(pretrained=False, in_channels=3, **kwargs):
     """VGG 13-layer model (configuration "B")
 
     Args:
@@ -126,13 +125,13 @@ def vgg13(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['B']), **kwargs)
+    model = VGG(make_layers(cfg['B'], in_channels), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg13']))
     return model
 
 
-def vgg13_bn(pretrained=False, **kwargs):
+def vgg13_bn(pretrained=False, in_channels=3, **kwargs):
     """VGG 13-layer model (configuration "B") with batch normalization
 
     Args:
@@ -140,13 +139,13 @@ def vgg13_bn(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['B'], batch_norm=True), **kwargs)
+    model = VGG(make_layers(cfg['B'], in_channels, batch_norm=True), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg13_bn']))
     return model
 
 
-def vgg16(pretrained=False, **kwargs):
+def vgg16(pretrained=False, in_channels=3, **kwargs):
     """VGG 16-layer model (configuration "D")
 
     Args:
@@ -154,13 +153,13 @@ def vgg16(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['D']), **kwargs)
+    model = VGG(make_layers(cfg['D'], in_channels), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg16']))
     return model
 
 
-def vgg16_bn(pretrained=False, **kwargs):
+def vgg16_bn(pretrained=False, in_channels=3, **kwargs):
     """VGG 16-layer model (configuration "D") with batch normalization
 
     Args:
@@ -168,13 +167,13 @@ def vgg16_bn(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['D'], batch_norm=True), **kwargs)
+    model = VGG(make_layers(cfg['D'], in_channels, batch_norm=True), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg16_bn']))
     return model
 
 
-def vgg19(pretrained=False, **kwargs):
+def vgg19(pretrained=False, in_channels=3, **kwargs):
     """VGG 19-layer model (configuration "E")
 
     Args:
@@ -182,13 +181,13 @@ def vgg19(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['E']), **kwargs)
+    model = VGG(make_layers(cfg['E'], in_channels), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg19']))
     return model
 
 
-def vgg19_bn(pretrained=False, **kwargs):
+def vgg19_bn(pretrained=False, in_channels=3, **kwargs):
     """VGG 19-layer model (configuration 'E') with batch normalization
 
     Args:
@@ -196,12 +195,13 @@ def vgg19_bn(pretrained=False, **kwargs):
     """
     if pretrained:
         kwargs['init_weights'] = False
-    model = VGG(make_layers(cfg['E'], batch_norm=True), **kwargs)
+    model = VGG(make_layers(cfg['E'], in_channels, batch_norm=True), **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['vgg19_bn']))
     return model
 
 
+# TODO: complete this
 def weight_transform(model_dict, pretrain_dict, channel):
     def cross_modality_pretrain(conv1_weight, channel):
         # transform the original 3 channel weight to "channel" channel
@@ -215,14 +215,14 @@ def weight_transform(model_dict, pretrain_dict, channel):
             new_conv1_weight[:, i, :, :] = avg.data
         return new_conv1_weight
 
-    weight_dict  = {k:v for k, v in pretrain_dict.items() if k in model_dict}
-    #print(pretrain_dict.keys())
+    weight_dict = {k: v for k, v in pretrain_dict.items() if k in model_dict}
+    # print(pretrain_dict.keys())
     w3 = pretrain_dict['conv1.weight']
-    #print(type(w3))
+    # print(type(w3))
     if channel == 3:
         wt = w3
     else:
-        wt = cross_modality_pretrain(w3,channel)
+        wt = cross_modality_pretrain(w3, channel)
 
     weight_dict['conv1_custom.weight'] = wt
     model_dict.update(weight_dict)

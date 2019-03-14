@@ -80,7 +80,7 @@ class Visualizer(object):
         return value
 
     def plot(self, y, x, line_name, win, legend=None):
-        # type:(float,float,str,str,list(str))->None
+        # type:(float,float,str,str,list)->bool
         """Plot a (sequence) of y point(s) (each) with one x value(s), loop this method to draw whole plot"""
         update = None if not self.visdom.win_exists(win) else 'append'
         opts = dict(title=win)
@@ -99,7 +99,7 @@ class Visualizer(object):
         return win == self.visdom.bar(y, win=win, env=self.config.visdom_env, opts=opts)
 
     def log(self, msg, name, append=True, log_file=None):
-        # type:(str,str,bool,bool,str)->None
+        # type:(Visualizer,str,str,bool,str)->bool
         if log_file is None:
             log_file = self.config.log_file
         info = "[{time}]{msg}".format(time=timestr('%m-%d %H:%M:%S'), msg=msg)
@@ -111,16 +111,16 @@ class Visualizer(object):
         return ret == name
 
     def log_process(self, num, total, msg, name, append=True):
-        # type:(int,int,str,Visdom,str,str,dict,bool)->None
+        # type:(Visualizer,int,int,str,str,bool)->bool
         info = "[{time}]{msg}".format(time=timestr('%m-%d %H:%M:%S'), msg=msg)
         append = append and self.visdom.win_exists(name)
         ret = self.visdom.text(info, win=(name), env=self.config.visdom_env, opts=dict(title=name), append=append)
         with open(self.config.log_file, 'a') as f:
             f.write(info + '\n')
-        self.processBar(num, total, msg)
+        self.process_bar(num, total, msg)
         return ret == name
 
-    def processBar(self, num, total, msg='', length=50):
+    def process_bar(self, num, total, msg='', length=50):
         rate = num / total
         rate_num = int(rate * 100)
         clth = int(rate * length)
@@ -132,5 +132,5 @@ class Visualizer(object):
         else:
             r = '\r%s[%s%s%d%%]' % (msg, '*' * clth, '-' * (length - clth), rate_num,)
         sys.stdout.write(r)
-        sys.stdout.flush
+        sys.stdout.flush()
         return r.replace('\r', ':')

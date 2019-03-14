@@ -22,7 +22,7 @@ def get_data(data_type, config: Config):
 
 
 def validate(model, val_data, config, vis):
-    # type: (Module,ActionDataLoader,Config,Visualizer)->None
+    # type: (Module,ActionDataLoader,Config,Visualizer)->(float, np.ndarray, defaultdict)
     with t.no_grad():
         correct_label_distrib = defaultdict(int)  # show how many sub-images are correct for all parent-images
         confusion_matrix = meter.ConfusionMeter(config.num_classes)
@@ -61,9 +61,12 @@ def validate(model, val_data, config, vis):
                         list(correct_label_distrib.keys()))
 
         val_cm = confusion_matrix.value()
-        val_acc = val_cm.trace().astype(np.float) / val_cm.sum()
+        precision = val_cm[0, 0] / val_cm[0].sum()
+        recall = val_cm[0, 0] / val_cm[:, 0].sum()
+        val_f1 = 2 * precision * recall / (precision + recall)
+        # val_acc = val_cm.trace().astype(np.float) / val_cm.sum()
 
-    return val_acc, val_cm, correct_label_distrib
+    return val_f1, val_cm, correct_label_distrib
 
 
 def main(args):
@@ -74,8 +77,8 @@ def main(args):
     vis = Visualizer(config)
     print("Prepare to validate model...")
 
-    val_acc, val_cm, corr_label = validate(model, val_data, config, vis)
-    msg = 'validation accuracy:{}\n'.format(val_acc)
+    val_f1, val_cm, corr_label = validate(model, val_data, config, vis)
+    msg = 'validation f1-score:{}\n'.format(val_f1)
     msg += 'validation confusion matrix:\n{}\n'.format(val_cm)
     msg += 'number of correct labels in a scene:\n{}\n'.format(corr_label)
     print("Validation Finish!", msg)
