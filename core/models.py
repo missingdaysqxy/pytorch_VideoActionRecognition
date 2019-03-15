@@ -28,10 +28,13 @@ class ActionNet(Module):
 
     def forward(self, input, h_state=None):
         # type:(t.Tensor,t.Tensor)->t.Tensor
-        bc, seq, c, h, w = input.shape
-        input = input.view(bc * seq, c, h, w)
-        input = self.cnn(input)
-        input = input.view(bc, seq, -1)
-        output, hn = self.rnn(input, h_state)
+        # bc, seq, c, h, w = input.shape
+        inputs = t.unbind(input, dim=1)  # list, len: seq
+        out_list = []
+        for input in inputs:
+            out_list.append(self.cnn(input))
+        output1 = t.stack(out_list, dim=1)
+        # output1 = output1.view(bc, seq, -1)
+        output, hn = self.rnn(output1, h_state)
         output = self.classifier(output[:, -1, :])
         return output

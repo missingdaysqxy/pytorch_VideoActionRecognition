@@ -40,7 +40,6 @@ def get_model(config: Config, **kwargs) -> _BaseModule:
         with set_grad_enabled(config.enable_grad):
             model = getattr(models, config.module)(config, **kwargs)
     except AttributeError as e:
-        import sys
         raise AttributeError(
             "No module named '{}' exists in core.models, error message: {}".format(config.module, e))
     from warnings import warn

@@ -31,7 +31,8 @@ class VGG(nn.Module):
 
     def __init__(self, features, in_size=[224, 224], num_classes=1000, init_weights=True):
         super(VGG, self).__init__()
-        self.features = features
+        with t.no_grad():
+            self.features = features
         self.features_num = 512 * math.ceil(in_size[0] / 32) * math.ceil(in_size[1] / 32)
         self.classifier = nn.Sequential(
             nn.Linear(self.features_num, 4096),

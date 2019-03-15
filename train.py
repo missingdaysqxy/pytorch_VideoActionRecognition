@@ -59,8 +59,6 @@ def train(model, train_data, val_data, config, vis):
         vis.clear()
     # init meter statistics
     loss_meter = meter.AverageValueMeter()
-    AP_meter = meter.APMeter()
-    # recall_meter=meter.RecallMeter()
     confusion_matrix = meter.ConfusionMeter(config.num_classes)
     last_score = 0
     for epoch in range(last_epoch + 1, config.max_epoch):
@@ -69,7 +67,6 @@ def train(model, train_data, val_data, config, vis):
         train_acc = 0
         scheduler.step(epoch)
         loss_meter.reset()
-        AP_meter.reset()
         confusion_matrix.reset()
         model.train()
         for i, b_data in enumerate(train_data):
@@ -82,9 +79,8 @@ def train(model, train_data, val_data, config, vis):
                     criterion = criterion.cuda()
             b_actions.requires_grad_(True)
             b_labels.requires_grad_(False)
-            # b_labels = b_labels.view(-1)
+            b_labels = b_labels.view(-1)
             # forward
-            # ipdb.set_trace()
             b_probs = model(b_actions)
             loss = criterion(b_probs, b_labels)
             # backward
@@ -94,7 +90,6 @@ def train(model, train_data, val_data, config, vis):
             # statistic
             loss_meter.add(loss.data.cpu())
             b_preds = t.argmax(b_probs, dim=-1)
-            AP_meter.add(b_preds, b_labels)
             confusion_matrix.add(b_preds, b_labels)
             # print process
             if i % config.ckpt_freq == 0 or i >= len(train_data) - 1:
@@ -103,30 +98,33 @@ def train(model, train_data, val_data, config, vis):
                 cm_value = confusion_matrix.value()
                 num_correct = cm_value.trace().astype(np.float)
                 train_acc = num_correct / cm_value.sum()
-                AP = AP_meter.value()
-                cm_AP = cm_value[0, 0] / cm_value[0].sum()
-                cm_recall = cm_value[0, 0] / cm_value[:, 0].sum()
-                f1_score = 2 * cm_AP * cm_recall / (cm_AP + cm_recall)
+                ipdb.set_trace()
+                TP = cm_value[1:, 1:].sum()
+                FP = cm_value[1:, 0].sum()
+                FN = cm_value[0:, 1:].sum()
+                TN = cm_value[0, 0]
+                precision = TP / (TP + FP)
+                recall = TP / (TP + FN)
+                f1_score = 2 * precision * recall / (precision + recall)
                 vis.plot(loss_mean, step, 'Loss_Value', "Loss Curve")
                 vis.plot(train_acc, step, 'train_acc', 'Training Accuracy')
                 vis.plot(f1_score, step, 'train_F1', 'Training F1 Score')
                 lr = optimizer.param_groups[0]['lr']
-                msg = "epoch:{},iteration:{}/{},loss:{},AP:{},cmAP:{},recall:{},lr:{},confusion_matrix:\n{}".format(
-                    epoch, i, len(train_data) - 1, loss_mean, AP, cm_AP, cm_recall, lr, confusion_matrix.value())
+                msg = "epoch:{},iteration:{}/{},loss:{},cmAP:{},recall:{},lr:{},confusion_matrix:\n{}".format(
+                    epoch, i, len(train_data) - 1, loss_mean, precision, recall, lr, confusion_matrix.value())
                 vis.log_process(i, len(train_data) - 1, msg, 'train_log')
 
                 # check if debug file occur
                 if os.path.exists(config.debug_flag_file):
                     ipdb.set_trace()
         # validate after each epoch
-        val_f1, val_cm, corr_label = val(model, val_data, config, vis)
-        vis.plot(val_f1, epoch, 'val_f1', 'Validation F1 Score', ['val_f1'])
+        val_f1, val_cm = val(model, val_data, config, vis)
+        vis.plot(val_f1, epoch, 'val_f1', 'Validation F1 Score')
         # save checkpoint
         if val_f1 > last_score:
             msg = 'Best validation result after epoch {}, loss:{}, train_acc: {}'.format(epoch, loss_mean, train_acc)
             msg += 'validation f1-score:{}\n'.format(val_f1)
             msg += 'validation confusion matrix:\n{}\n'.format(val_cm)
-            msg += 'number of correct labels in a scene:\n{}\n'.format(corr_label)
             vis.log(msg, 'best_val_result', log_file=config.val_result, append=False)
             print("save best validation result into " + config.val_result)
         last_score = val_f1

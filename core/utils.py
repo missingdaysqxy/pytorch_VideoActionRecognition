@@ -60,8 +60,8 @@ class Visualizer(object):
                 with open(self.config.vis_env_path, 'r') as fp:
                     env_str = json.load(fp)
                     return env_str
-        except:
-            pass
+        except Exception as e:
+            warn(e)
         return None
 
     def clear(self):

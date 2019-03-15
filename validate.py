@@ -22,9 +22,8 @@ def get_data(data_type, config: Config):
 
 
 def validate(model, val_data, config, vis):
-    # type: (Module,ActionDataLoader,Config,Visualizer)->(float, np.ndarray, defaultdict)
+    # type: (Module,ActionDataLoader,Config,Visualizer)->(float, np.ndarray)
     with t.no_grad():
-        correct_label_distrib = defaultdict(int)  # show how many sub-images are correct for all parent-images
         confusion_matrix = meter.ConfusionMeter(config.num_classes)
         # validate
         for i, b_data in enumerate(val_data):
@@ -41,32 +40,23 @@ def validate(model, val_data, config, vis):
             # confusion matrix statistic
             b_preds = t.argmax(b_probs, dim=-1)
             confusion_matrix.add(b_preds, b_labels)
-            # distribution statistic
-            equals = t.split((b_preds == b_labels), 8)
-            for eqs in equals:
-                sub_corr_count = int(eqs.sum().cpu().numpy())
-                correct_label_distrib[sub_corr_count] += 1
-            for i in range(9):
-                correct_label_distrib[i] += 0
-            correct_label_distrib = dict(sorted(correct_label_distrib.items(), key=lambda x: x[0], reverse=False))
             # print process
             if i % config.ckpt_freq == 0 or i >= len(val_data) - 1:
                 val_cm = confusion_matrix.value()
                 msg = "[Validation]process:{}/{},".format(i, len(val_data) - 1)
-                msg += "confusion matrix:\n{}\ncorrect labels distribution:\n{}\n".format(
-                    val_cm, correct_label_distrib)
+                msg += "confusion matrix:\n{}\n".format(val_cm)
                 vis.log_process(i, len(val_data) - 1, msg, 'val_log', append=True)
-
-                vis.bar(list(correct_label_distrib.values()), 'number of correct labels',
-                        list(correct_label_distrib.keys()))
-
         val_cm = confusion_matrix.value()
-        precision = val_cm[0, 0] / val_cm[0].sum()
-        recall = val_cm[0, 0] / val_cm[:, 0].sum()
+        TP = val_cm[1:, 1:].sum()
+        FP = val_cm[1:, 0].sum()
+        FN = val_cm[0:, 1:].sum()
+        TN = val_cm[0, 0]
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
         val_f1 = 2 * precision * recall / (precision + recall)
         # val_acc = val_cm.trace().astype(np.float) / val_cm.sum()
 
-    return val_f1, val_cm, correct_label_distrib
+    return val_f1, val_cm
 
 
 def main(args):
@@ -77,10 +67,9 @@ def main(args):
     vis = Visualizer(config)
     print("Prepare to validate model...")
 
-    val_f1, val_cm, corr_label = validate(model, val_data, config, vis)
+    val_f1, val_cm = validate(model, val_data, config, vis)
     msg = 'validation f1-score:{}\n'.format(val_f1)
     msg += 'validation confusion matrix:\n{}\n'.format(val_cm)
-    msg += 'number of correct labels in a scene:\n{}\n'.format(corr_label)
     print("Validation Finish!", msg)
     vis.log(msg, 'val_result', log_file=config.val_result)
     print("save best validation result into " + config.val_result)
