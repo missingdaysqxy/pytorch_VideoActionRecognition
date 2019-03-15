@@ -16,10 +16,19 @@ class ActionNet(Module):
     def __init__(self, config: Config):
         super(ActionNet, self).__init__()
         self.config = config
-        self.cnn = CNNs.vgg13_bn(pretrained=True, num_classes=1000)
+        # self.cnn = CNNs.vgg13_bn(pretrained=True, num_classes=1000)
+        # self.linear = nn.Sequential(
+        #     nn.Linear(config.image_resize[0] * config.image_resize[1] * 3, 4096),
+        #     nn.ReLU(True),
+        #     nn.Dropout(),
+        #     nn.Linear(4096, 4096),
+        #     nn.ReLU(True),
+        #     nn.Dropout(),
+        #     nn.Linear(4096, 1000),
+        # )
         self.rnn = nn.LSTM(
-            # input_size=config.image_resize[0] * config.image_resize[1] * 3,
-            input_size=1000,
+            input_size=config.image_resize[0] * config.image_resize[1] * 3,
+            # input_size=1000,
             hidden_size=config.hidden_size,
             num_layers=config.lstm_layers,
             batch_first=True,
@@ -28,13 +37,9 @@ class ActionNet(Module):
 
     def forward(self, input, h_state=None):
         # type:(t.Tensor,t.Tensor)->t.Tensor
-        # bc, seq, c, h, w = input.shape
-        inputs = t.unbind(input, dim=1)  # list, len: seq
-        out_list = []
-        for input in inputs:
-            out_list.append(self.cnn(input))
-        output1 = t.stack(out_list, dim=1)
-        # output1 = output1.view(bc, seq, -1)
-        output, hn = self.rnn(output1, h_state)
+        bc, seq, c, h, w = input.shape
+        input = input.view(bc, seq, -1)
+        # output = self.linear(input)
+        output, hn = self.rnn(input, h_state)
         output = self.classifier(output[:, -1, :])
         return output
