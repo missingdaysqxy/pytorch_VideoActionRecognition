@@ -13,9 +13,9 @@ from time import strftime as timestr
 
 class Config(object):
     # data config
-    train_data_path = r'/home/liuqixuan/datasets/actions/datalist.csv'
-    val_data_path = r'/home/liuqixuan/datasets/actions/datalist.csv'
-    classes_path = r"/home/liuqixuan/datasets/actions/clslist.txt"
+    train_data_path = r'D:\datasets\actions/datalist.csv'
+    val_data_path = r'D:\datasets\actions/datalist.csv'
+    classes_path = r"D:\datasets\actions/clslist.txt"
     reload_data = False  # update and reload datasets every time
     shuffle_train = True
     shuffle_val = True
@@ -26,13 +26,14 @@ class Config(object):
     use_gpu = True  # if there's no cuda-available GPUs, this will turn to False automatically
     num_data_workers = 8  # how many subprocesses to use for data loading
     pin_memory = False  # only set to True when your machine's memory is large enough
-    time_out = 120  # max seconds for loading a batch of data, 0 means non-limit
+    time_out = 100  # max seconds for loading a batch of data, 0 means non-limit
     max_epoch = 100  # how many epochs for training
-    batch_size = 20  # how many scene images for a batch
+    batch_size = 4  # how many scene images for a batch
 
     # weight S/L config
     weight_load_path = r'checkpoints/actionnet.pth'  # where to load pre-trained weight for further training
     weight_save_path = r'checkpoints/actionnet.pth'  # where to save trained weights for further usage
+    weight_autofit = True # when error occurs on loading weights, auto-fit it. If False, a RuntimeError would be raised
     log_root = r'logs'  # where to save logs, includes temporary weights of module and optimizer, train_record json list
     debug_flag_file = r'debug'
 

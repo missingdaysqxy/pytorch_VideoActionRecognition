@@ -56,23 +56,38 @@ def normalize_frame(frame: np.ndarray, factor=1) -> np.ndarray:
 def proc_h5(h5_path, zoom_factor=1.0, show_window=True, rebuild=False):
     save_path = os.path.splitext(os.path.splitext(h5_path)[0])[0] + _PROC_EXT_
     if os.path.isfile(save_path) and not rebuild:
-        print("[!]{} existed! Ignore {}".format(save_path, h5_path))
-        return save_path
-    with h5py.File(h5_path, "r") as hf:
-        h, w = hf["height"].value, hf["width"].value
-        assert h > 0 and w > 0
-        person_skeletons = []
-        for frm in range(len(hf) - 2):
-            if "frame%d" % frm not in hf:
-                warn("frame%d not exist in %s" % (frm, h5_path))
-                continue
-            joint_list = hf["frame%d" % frm]["joint_list"].value
-            person_to_joint_assoc = hf["frame%d" % frm]["person_to_joint_assoc"].value
-            canvas = decode_pose(joint_list, person_to_joint_assoc, (h, w), zoom_factor=zoom_factor)
-            person_skeletons.append(canvas[np.newaxis, ...])
+        # check file
+        try:
+            data = np.load(save_path)
+            data = data['arr_0']
+            seq, hh, ww, c = data.shape
+            with h5py.File(h5_path, "r") as hf:
+                h, w = hf["height"].value, hf["width"].value
+                frame_count = len(hf) - 2
+            if seq == frame_count and hh == int(h * zoom_factor) and ww == int(w * zoom_factor) and c == 3:
+                print("[!]{} existed! Ignore {}".format(save_path, h5_path), end='\r')
+                return save_path
+        except:
+            print("[!]File Corrupted! Try to rebuild {} ...".format(save_path))
+    try:
+        with h5py.File(h5_path, "r") as hf:
+            h, w = hf["height"].value, hf["width"].value
+            assert h > 0 and w > 0
+            person_skeletons = []
+            for frm in range(len(hf) - 2):
+                if "frame%d" % frm not in hf:
+                    warn("frame%d not exist in %s" % (frm, h5_path))
+                    continue
+                joint_list = hf["frame%d" % frm]["joint_list"].value
+                person_to_joint_assoc = hf["frame%d" % frm]["person_to_joint_assoc"].value
+                canvas = decode_pose(joint_list, person_to_joint_assoc, (h, w), zoom_factor=zoom_factor)
+                person_skeletons.append(canvas[np.newaxis, ...])
+    except OSError as e:
+        warn(str(e))
+        return None
     person_skeletons = align_skeletons(person_skeletons)
     save_skeletons2npz(person_skeletons, save_path, show_window=show_window)
-    print("[*]process {} into {}".format(h5_path, save_path))
+    print("[*]process {} into {}".format(h5_path, save_path), end='\r')
     return save_path
 
 

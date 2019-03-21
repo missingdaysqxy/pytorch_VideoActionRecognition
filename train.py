@@ -101,16 +101,16 @@ def train(model, train_data, val_data, config, vis):
                 ipdb.set_trace()
                 TP = cm_value[1:, 1:].sum()
                 FP = cm_value[1:, 0].sum()
-                FN = cm_value[0:, 1:].sum()
+                FN = cm_value[0, 1:].sum()
                 TN = cm_value[0, 0]
                 precision = TP / (TP + FP)
                 recall = TP / (TP + FN)
                 f1_score = 2 * precision * recall / (precision + recall)
-                vis.plot(loss_mean, step, 'Loss_Value', "Loss Curve")
+                vis.plot(loss_mean, step, 'loss_value', "Loss Curve")
                 vis.plot(train_acc, step, 'train_acc', 'Training Accuracy')
-                vis.plot(f1_score, step, 'train_F1', 'Training F1 Score')
+                vis.plot(f1_score, step, 'train_f1', 'Training F1 Score')
                 lr = optimizer.param_groups[0]['lr']
-                msg = "epoch:{},iteration:{}/{},loss:{},cmAP:{},recall:{},lr:{},confusion_matrix:\n{}".format(
+                msg = "epoch:{},iteration:{}/{},loss:{},precision:{},recall:{},lr:{},confusion_matrix:\n{}".format(
                     epoch, i, len(train_data) - 1, loss_mean, precision, recall, lr, confusion_matrix.value())
                 vis.log_process(i, len(train_data) - 1, msg, 'train_log')
 

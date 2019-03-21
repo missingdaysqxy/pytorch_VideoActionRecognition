@@ -49,7 +49,7 @@ def validate(model, val_data, config, vis):
         val_cm = confusion_matrix.value()
         TP = val_cm[1:, 1:].sum()
         FP = val_cm[1:, 0].sum()
-        FN = val_cm[0:, 1:].sum()
+        FN = val_cm[0, 1:].sum()
         TN = val_cm[0, 0]
         precision = TP / (TP + FP)
         recall = TP / (TP + FN)

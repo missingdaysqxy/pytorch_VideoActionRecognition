@@ -8,6 +8,7 @@
 import os
 import time
 import torch as t
+from typing import Dict
 from torch import save, load, set_grad_enabled
 from warnings import warn
 from torch.nn import Module, DataParallel
@@ -31,6 +32,7 @@ def get_model(config: Config, **kwargs) -> _BaseModule:
     """
     Find a Module specified by config.module from core.models, and get an instance of it
     :param config: instance of core.Config
+    :param state_dict_preprocess: a function to do some pre-work with state_dict before it will be loaded
     :param kwargs: arguments that will be passed into the Module, default is None
     :return: an instance of the Module specified by config.module
     """
@@ -60,10 +62,40 @@ def get_model(config: Config, **kwargs) -> _BaseModule:
             model.load_state_dict(state_dict)
             print('Loaded weights from ' + config.weight_load_path)
         except RuntimeError as e:
-            warn("Failed to load weights file")
-            print('Failed to load weights file {} because:\n{}'.format(config.weight_load_path, e))
+            warn("Failed to load weights file {} because:\n{}, try to auto-fit...".format(config.weight_load_path, e))
+            if config.weight_autofit:
+                autofit_weights(state_dict, model)
+            else:
+                raise e
     return model
 
+
+# def preprocess_state_dict(state_dict, model:Module):
+#     for k, v in state_dict.items():
+#         print("{:30} shape:{}".format(k, tuple(v.shape)))
+#
+#     for k, v in model.state_dict().items():
+#         print("{:30} shape:{}".format(k, tuple(v.shape)))
+
+def autofit_weights(state_dict:dict, model:Module):
+    def cross_modality_pretrain(layer_weight, target_shape):
+        # transform the original 3 channel weight to "channel" channel
+        S = 0
+        for i in range(3):
+            S += layer_weight[:, i, :, :]
+        avg = S / 3.
+        new_layer_weight = t.zeros(target_shape,dtype=layer_weight.dtype)
+        # todo:先将shape的长度统一
+        # todo:再将shape的维度平均
+        for i in range(channel):
+            new_layer_weight[:, i, :, :] = avg.data
+        return new_layer_weight
+
+    model_dict = model.state_dict()
+    for k,v in model_dict.items():
+        if k in state_dict:
+            if v.shape != state_dict[k].shape:
+                state_dict[k]=cross_modality_pretrain(state_dict[k],v.shape)
 
 def make_checkpoint(config, epoch, start_time, loss_val, train_acc, val_acc, model, optimizer=None):
     # type:(Config,int,float,float,float,float,Module,Optimizer)->None
